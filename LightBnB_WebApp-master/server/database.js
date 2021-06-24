@@ -114,53 +114,37 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function(options, limit = 10) {
-  // return pool
-  //   .query(`SELECT (properties.*), avg(rating) AS average_rating 
-  //   FROM properties
-  //   JOIN property_reviews ON property_id= properties.id
-  //   GROUP BY properties.id
-  //   LIMIT $1`, [limit])
-  //   .then((result) => {
-  //     //console.log(result.rows);
-  //     return result.rows;
-  //   })
-  //   .catch((err) => {
-  //     console.log(err.message);
-  //   });
-
   if (options.owner_id) {
-    // 1
+
     const queryParams = [options.owner_id];
-    // 2
+
     let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
   JOIN property_reviews ON properties.id = property_id
   WHERE owner_id=$1
   GROUP BY properties.id;`;
-    // 5
-    console.log(queryString, queryParams, options);
 
-    // 6
     return pool.query(queryString, queryParams).then((res) => res.rows);
 
   } else {
-    // 1
+    // An array to hold any parameters that may be available for the query.
     const queryParams = [];
-    // 2
+
+    // The query with all information that comes before the WHERE clause
     let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
   JOIN property_reviews ON properties.id = property_id
   `;
 
-    // 3.1
+    // Creation for WHERE clause for following option
     if (options.city) {
       queryParams.push(`%${options.city}%`);
       queryString += `WHERE city LIKE $${queryParams.length} `;
     }
 
-    // 3.2
+    // Creation for WHERE clause for following option
     if (options.minimum_price_per_night && options.maximum_price_per_night) {
       queryParams.push(options.minimum_price_per_night);
 
@@ -170,14 +154,14 @@ const getAllProperties = function(options, limit = 10) {
       queryString += `AND $${queryParams.length}) `;
     }
 
-    // 3.3
+    // Creation for WHERE clause for following option
     if (options.minimum_rating) {
       queryParams.push(options.minimum_rating);
 
       queryString += `AND (property_reviews.rating = $${queryParams.length})`;
     }
 
-    // 4
+    // Add any query that comes after the WHERE clause
     queryParams.push(limit);
     queryString += `
     GROUP BY properties.id
@@ -185,11 +169,7 @@ const getAllProperties = function(options, limit = 10) {
     LIMIT $${queryParams.length};
     `;
 
-
-    // 5
-    console.log(queryString, queryParams, options);
-
-    // 6
+    // Query Execution
     return pool.query(queryString, queryParams).then((res) => res.rows);
   }
 
@@ -203,9 +183,50 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  // const propertyId = Object.keys(properties).length + 1;
+  // property.id = propertyId;
+  // properties[propertyId] = property;
+  // return Promise.resolve(property);
+
+
+  // 1
+  const queryParams = [
+    property.owner_id,
+    property.title,
+    property.description,
+    property.thumbnail_photo_url,
+    property.cover_photo_url,
+    property.cost_per_night,
+    property.street,
+    property.city,
+    property.province,
+    property.post_code,
+    property.country,
+    property.parking_spaces,
+    property.number_of_bathrooms,
+    property.number_of_bedrooms
+  ];
+  // 2
+  let queryString = `INSERT INTO properties (
+    owner_id,
+    title,
+    description,
+    thumbnail_photo_url,
+    cover_photo_url,
+    cost_per_night,
+    street,
+    city,
+    province,
+    post_code,
+    country,
+    parking_spaces,
+    number_of_bathrooms,
+    number_of_bedrooms) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *;`;
+
+
+  return pool.query(queryString, queryParams)
+    .then(result => result.rows)
+    .catch(err => console.log(err));
+
 }
 exports.addProperty = addProperty;
